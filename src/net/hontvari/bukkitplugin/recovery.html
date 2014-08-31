@@ -1,0 +1,31 @@
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Kill - Recovery</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width">
+    </head>
+    <body>
+        <h1>Recovery</h1>
+        <h3 style="display: '${infobar};'">
+            ${infobar_text}<button onclick="location.replace('/recovery')">OK</button>
+        </h3>
+        <form action="do_recovery">
+            <input type="hidden" name="val" id="val">
+            <input name="action" type="submit" value="Reload"><br>
+            Név: <input type="text" name="uname"><br>
+            <input name="action" type="submit" value="Kill">
+            <input name="action" type="submit" value="Kick">
+            <input name="action" type="submit" value="Ban">
+            <input name="action" type="submit" value="Unban">
+            <input name="action" type="submit" value="Op">
+            <input name="action" type="submit" value="Deop">
+            <input name="action" type="submit" value="tellraw" onclick="document.getElementById('val').value = prompt('Message: ')">
+        </form>
+    </body>
+</html>

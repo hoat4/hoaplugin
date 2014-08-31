@@ -1,0 +1,142 @@
+name: "HoaPlugin"
+main: net.hontvari.bukkitplugin.HoaBukkitPlugin
+version: 2.0
+prefix: [HoaPlugin]
+
+commands:
+  hoa:
+    description: HoaPlugin parancs
+    usage: /hoa ?
+    permission: net.hontvari.hoaplugin.bukkit.usehoa
+    permission-message: Ezt a parancsot ne használd. 
+  hoa adminmsg:
+    description: Adminoknak üzenet.
+    usage: /hoa adminmsg üzenet
+  hoa pjoin:
+    description: Belépési üzenet küldése.
+    usage: /hoa pjoin név
+  hoa pquit:
+    description: Kilépési üzenet küldése.
+    usage: /hoa pquit név
+  hoa ver:
+    description: HoaPlugin verziószám kijelzése
+    usage: /hoa ver
+  hoa wait:
+    description: Mesterséges lagg
+    usage: /hoa wait ezredmásodperc
+  hoa getpos:
+    description: Pozíció lekérése
+    usage: /hoa getpos
+  hoa addcc:
+    description: CC lisához hozzzáadás. Újraindításkor kitörlődik.
+    usage: /hoa addcc név
+  hoa rmcc:
+    description: CC listából kitörlés
+    usage: /hoa rmcc név
+  hoa alvtp:
+    description: Teleportálás pontosan, megbízhatóan, és veszélyes helyekre is
+    usage:  /hoa alvtp világ x y z
+  selfmsg:
+    description: Magadnak üzenet.
+    usage: /selfmsg szöveg
+    permission: net.hontvari.hoaplugin.selfmsg
+    permission-message: Nincs ehhez jogod.
+  plainmsg:
+    description: Plain üzenet
+    usage: /plainmsg név üzenet
+    permission: net.hontvari.hoaplugin.plainmsg
+    permission-message: Nincs ehhez jogod.
+  register:
+      description: Regisztrálás.
+      usage: /register jelszó
+  login:
+      description: Belépés.
+      usage: /login jelszó
+  unregister:
+      description: Regisztráció törlése.
+      usage: /unregister
+  sinfo:
+    description: Szerverinfó bekapcsolása.
+    usage: /sinfo on|off
+  hoa_gc:
+    description: GC
+    usage: /hoa_gc
+  a:
+    description: Titok a leírása.
+    usage: /a
+  sendtoconsolehidden:
+    description: Írás a szervernaplóba
+    usage: titok
+  hoa_user:
+    description: Minden játékosnak parancsok.
+    usage: sokminden
+  warp:
+    description: Warpolás
+  fly:
+    description: Bekapcsolja, vagy kikapcsolva azt, hgoy repülhetsz-e. 
+  ci:
+    description: Kitörli az inventory-dat. 
+  afk:
+    description: Bejelöl afk-nak, azaz hogy éppen nem Minecraftozol ezen a szerveren, de nem léptél ki. Amikor utána újramegmozdulsz, már nem leszel afk-nak jelölve. 
+  sudo:
+    description: Másként végrehajt egy parancsot. 
+  i:
+    description: Addol magadnak egy itemet. 
+  hu_spleef_restore:
+    description: Belső használatra. 
+  gmc:
+    description: Kreatív módba tesz téged. 
+  gms:
+    description: Túlélő módba tesz téged. 
+  hu_checkandset_1w:
+    description: Belső használatra. 
+  heal:
+    description: Teljes életed lesz, miután használod. 
+  invsee:
+    description: Más inventory-jának nézegetése.
+  sethome:
+    description: Az otthonod beállítása. 
+  home:
+    description: Teleportálás az otthonodhoz, amit a /sethome-al állíthatsz be. 
+  speed:
+    description: Beállítja, hogy milyen gyorsan repülsz. 
+  hu_maradjtalpon_start:
+    description: Elindítja a maradj talpon játékot. 
+  hpcmdblk:
+    description: HoaPlugin ComMand BLocK
+  plotme:
+    description: PlotMe kompatibilitás. 
+  p:
+    description: PlotMe kompatibilitás. 
+  telek:
+    description: A telekrendszer. 
+  t:
+    description: Telekrendszer. 
+  spawn:
+    description: Elvisz az UbiCraft spawn-jára. 
+  telkek:
+    description: Teleportál a "Telkek" világ közepére. 
+  állatfarm:
+    description: Elvisz az UbiCraft állatfarmra. 
+  zombierun:
+    description: Teleportál a Zombie Run játékunkra. 
+  pvp:
+    description: Teleportál a PvP arénába, ahol ütögetheted a másik gyereket. 
+  szobrok:
+    description: Elvisz a staffunk által épített szobrokhoz. 
+  jumpok:
+    description: Teleportál az UbiCraft jumpválasztóhoz. 
+  spleef:
+    description: Teleportál a spleefhez.
+  fatelep:
+    description: Elvisz a fatelephez, ahol kedved szerintvághatsz nyír-, tölgy-, dzsungel-, és akáciafát. 
+  tp:
+    description: Elteleportál másik játékoshoz. 
+  kill:
+  give:
+  enderchest:
+  workbench:
+  edit:
+  say:
+  bearaz:
+  nick:
