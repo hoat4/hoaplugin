@@ -152,6 +152,12 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         reloadHoaPlugin(Bukkit.getConsoleSender());
                         enabled = System.currentTimeMillis();
                     }
+                    Date d = new Date();
+                    long time = Math.round(24000 * ((double) (d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000 + d.getTime() % 1000) / 0x5265C00)) - 6000;
+
+                    for (World world : Bukkit.getWorlds())
+                        world.setTime(time);
+                    System.out.println(time);
                 }
             }, 20, 10));
 
@@ -183,6 +189,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
             serverStats.onDisable();
         timer.cancel();
         stopWebServer();
+        Bukkit.getScheduler().cancelTasks(this);
         isEnabled = false;
     }
     public static volatile int idGenerator = 10000000;
@@ -358,8 +365,9 @@ public class HoaBukkitPlugin extends JavaPlugin {
                                         sb.append("tp @p ").append(l.getBlockX()).append(".5 ").append(l.getBlockY()).append(" ").append(l.getBlockZ()).append(".5");
                                     else
                                         sb.append("    public static final Location ").append(args[1]).append(" = pos(").append(l.getWorld().getName().equals(UbiCraft.varosWorldName) ? "varosWorldName" : ("\"" + l.getWorld().getName() + "\"")).append(", ").append(l.getBlockX()).append(".5, ").append(l.getBlockY()).append(", ").append(l.getBlockZ()).append(".5, ").append(Math.round(l.getYaw() / 45) * 45).append(args.length == 1 ? "" : ");");
-                                    chat(p, warpdefMeta.author("HoaPlugin/" + p.getName()).
-                                            charset("ISO 8859-2").securityLevel(PlaceSecurity.RS_3).upload(sb.toString()).url());
+                                    String url = warpdefMeta.author("HoaPlugin/" + p.getName()).
+                                            charset("ISO 8859-2").securityLevel(PlaceSecurity.RS_3).upload(sb.toString()).url();
+                                    chatJSON(p, "{text:\"WarpDef from "+p.getDisplayName()+"\",clickEvent:{action:open_url,value:\"" + url + "\"}}");
                                 } catch (IOException ex) {
                                     throw new RuntimeException(ex);
                                 }
@@ -1211,36 +1219,16 @@ public class HoaBukkitPlugin extends JavaPlugin {
             ((CraftPlayer) player).getHandle().playerConnection.sendPacket(new PacketPlayOutChat(ChatSerializer.a(substring)));
         }
     }
-    private final String chatFormat = "{"
-            + "    color: gray,"
-            + "    text: \"[$H:$M:$S @ $W]\","
-            + "    extra: ["
-            + "        {"
-            + "            color: dark_red, "
-            + "            text: \"$B\", "
-            + "            clickEvent: {"
-            + "                action: suggest_command, "
-            + "                value: \"/edit $I\""
-            + "            }"
-            + "        },"
-            + "        {"
-            + "            color: white,"
-            + "            text: \" <\""
-            + "        }, "
-            + "        {"
-            + "            color: $C,"
-            + "            text: \"[$R]\" "
-            + "        }, "
-            + "        {"
-            + "            color: \"$c\", "
-            + "            text: \"$P\""
-            + "        }, "
-            + "        {"
-            + "            color: \"white\", "
-            + "            text: \"> $m\""
-            + "        }"
-            + "    ]"
-            + "}".replace("\n", "").replace("  ", "");
+    private String chatFormat;
+
+    {
+        try {
+            chatFormat = Uploaded.byName("l5gn").stringContent().replace("\r", "").replace("\n", "").replace("  ", "");
+        } catch (IOException ex) {
+            Logger.getLogger(HoaBukkitPlugin.class.getName()).log(Level.SEVERE, null, ex);
+            chatFormat = ex.toString();
+        }
+    }
 
     private static final List<String> blacklist = Arrays.asList("anyád", "kurva", "bazd", "picsa", "picsába", "basz", "fasz", "pöcs", "szar", "fos", "szopd", "rohadj", "fuck", "buzi", "kúr", "csöves", "geci", "segg", "pina", "antinormális hülyegyerek", "shit", "homokos", "kapd be", "buzeráns", "k*rva", "ku*va", "kur*a", "f@sz", "k***a", "anyad", "fák ju", "kuss");
     private static final List<String> blacklist2 = Arrays.asList("istenem", "csak", "de istenem");
@@ -1375,7 +1363,8 @@ public class HoaBukkitPlugin extends JavaPlugin {
                 replace("$P", p.getDisplayName()).
                 replace("$m", escapeJSON(message)).
                 replace("$I", chatID + " " + message).
-                replace("$B", self ? "E" : "");
+                replace("$B", self ? "E" : "").
+                replace("$p", "X: " + p.getLocation().getBlockX() + " / Y: " + p.getLocation().getBlockY() + " / Z: " + p.getLocation().getBlockZ() + "\\nF: " + p.getLocation().getPitch());
         System.out.println(value.replace("$B", "E"));
         return value;
     }
