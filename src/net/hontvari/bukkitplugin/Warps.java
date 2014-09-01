@@ -43,7 +43,7 @@ public class Warps {
 
     @Warp(desc = "Mine20 és zsohajdu1 jumpjai. ")
     public static final Location jumpok = pos(varosWorldName, -50.5, 46, -4, 0);
-
+    
 //    @Warp(desc = "Mobokkal harcolsz, ennyi. ")
 //    public static final Location mobarena = pos("world", 20201, 62, 19986, 90);
     @Warp(desc = "A Telkek világ warpja. ", after = ", ")
