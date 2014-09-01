@@ -594,7 +594,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         if (!field.isAnnotationPresent(Warp.class))
                             continue;
                         Warp warp = field.getAnnotation(Warp.class);
-                        jsonBuilder.append("{text:\"/").append(warp.before()).append(field.getName()).append("\",hoverEvent:{action:show_text,value:\"").append(warp.desc()).append("\"},clickEvent:{action:run_command,value:\"/warp ").append(field.getName()).append("\"}},");
+                        jsonBuilder.append("{text:\"").append(warp.before()).append("/").append(field.getName()).append("\",hoverEvent:{action:show_text,value:\"").append(warp.desc()).append("\"},clickEvent:{action:run_command,value:\"/warp ").append(field.getName()).append("\"}},");
                         jsonBuilder.append("{text:\"").append(warp.after()).append("\"},");
                     }
                     jsonBuilder.append("{text:\"\"}]}");
