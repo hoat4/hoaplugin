@@ -38,6 +38,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerChatTabCompleteEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -571,5 +572,13 @@ public class PlayerEventListener implements Listener {
         for (ItemStack itemStack : ender)
             if (itemStack != null)
                 p.getEnderChest().addItem(itemStack);
+    }
+
+    @EventHandler
+    public void on(PlayerChatTabCompleteEvent evt) {
+        if (evt.getLastToken().equals(evt.getChatMessage()) && evt.getLastToken().startsWith("@") && !evt.getLastToken().startsWith("@@")) {
+            for (Player player : Bukkit.getOnlinePlayers())
+                evt.getTabCompletions().add("@" + player.getName());
+        }
     }
 }

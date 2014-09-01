@@ -157,7 +157,6 @@ public class HoaBukkitPlugin extends JavaPlugin {
 
                     for (World world : Bukkit.getWorlds())
                         world.setTime(time);
-                    System.out.println(time);
                 }
             }, 20, 10));
 
@@ -888,6 +887,13 @@ public class HoaBukkitPlugin extends JavaPlugin {
             handle((Player) sender, ex);
         }
         return false;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if(alias.equals("warp"))
+            return (List)Arrays.asList((Object[])Arrays.asList(Warps.class.getDeclaredFields()).stream().map(Field::getName).toArray());
+        return null;
     }
     private final UploadMeta warpdefMeta = UploadMeta.create().title("UC::WarpDef");
     private int maradjtalponCounter;
