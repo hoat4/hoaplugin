@@ -580,7 +580,6 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         chat(p, i18n("cmd.gmc.noPermission"));
                     return true;
                 case "warp":
-                case "w":
                     if (args.length == 1)
                         try {
                             p.teleport((Location) Warps.class.getDeclaredField(args[0]).get(null));
@@ -595,7 +594,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         if (!field.isAnnotationPresent(Warp.class))
                             continue;
                         Warp warp = field.getAnnotation(Warp.class);
-                        jsonBuilder.append("{text:\"").append(warp.before()).append(field.getName()).append("\",hoverEvent:{action:show_text,value:\"").append(warp.desc()).append("\"},clickEvent:{action:run_command,value:\"/warp ").append(field.getName()).append("\"}},");
+                        jsonBuilder.append("{text:\"/").append(warp.before()).append(field.getName()).append("\",hoverEvent:{action:show_text,value:\"").append(warp.desc()).append("\"},clickEvent:{action:run_command,value:\"/warp ").append(field.getName()).append("\"}},");
                         jsonBuilder.append("{text:\"").append(warp.after()).append("\"},");
                     }
                     jsonBuilder.append("{text:\"\"}]}");
