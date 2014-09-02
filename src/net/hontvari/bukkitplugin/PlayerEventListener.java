@@ -17,21 +17,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import static net.hontvari.bukkitplugin.HoaBukkitPlugin.*;
-import net.hontvari.bukkitplugin.HoaBukkitPlugin.IDDescriptor;
 import static net.hontvari.bukkitplugin.HoaBukkitPlugin.StringToInventory;
 import static net.hontvari.bukkitplugin.HoaBukkitPlugin.i18n;
 import static net.hontvari.bukkitplugin.HoaBukkitPlugin.needLogin;
 import static net.hontvari.bukkitplugin.UbiCraft.varosWorldName;
+import net.hontvari.bukkitplugin.World.Block;
 import static org.apache.commons.lang.StringUtils.reverse;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import static org.bukkit.Material.ENDER_CHEST;
 import static org.bukkit.Material.ENDER_STONE;
-import org.bukkit.World;
-import org.bukkit.block.Block;
+import org.bukkit.block.CommandBlock;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -102,20 +100,20 @@ public class PlayerEventListener implements Listener {
         if (message.startsWith("id "))
             try {
                 String id = message.substring("id ".length());
-                IDDescriptor descriptor = HoaBukkitPlugin.ids.get(id);
-                chat(p, descriptor.toString());
-                List<Recipe> recipes = Bukkit.getRecipesFor(new ItemStack(plugin.material(descriptor.name)));
+                Material material = Material.get(id);
+                chat(p, material.toString());
+                List<Recipe> recipes = Bukkit.getRecipesFor(material.createStack());
                 for (Recipe recipe : recipes)
                     if (recipe instanceof ShapelessRecipe)
                         chat(p, ((ShapelessRecipe) recipe).getIngredientList().toString());
                     else if (recipe instanceof ShapedRecipe) {
                         ShapedRecipe shape = (ShapedRecipe) recipe;
-                        Material[] materials = new Material[9];
+                        String[] materials = new String[9];
                         for (Map.Entry<Character, ItemStack> entry : shape.getIngredientMap().entrySet())
-                            materials[entry.getKey() - 'a'] = entry.getValue().getType();
+                            materials[entry.getKey() - 'a'] = entry.getValue().getType().toString();
                         StringBuilder sb = new StringBuilder("air");
-                        for (Material material : materials)
-                            sb.append(',').append(material.name());
+                        for (String string : materials)
+                            sb.append(',').append(string);
                         chatJSON(p, "{text:\"Craft\",clickEvent:{action:run_command,value:\"/workbench " + sb.toString() + "\"}}");
                     }
                 return;
@@ -245,7 +243,8 @@ public class PlayerEventListener implements Listener {
     public void onPlayerTeleport(PlayerTeleportEvent evt) {
         if (!uc.canTeleportTo(evt))
             evt.setCancelled(true);
-        if (evt.getTo().getWorld().getName().equals(UbiCraft.varosWorldName))
+        World toWorld = World.of(evt.getTo().getWorld());
+        if (toWorld.name.equals(UbiCraft.varosWorldName))
             evt.getPlayer().setWalkSpeed(0.39f);
         else
             evt.getPlayer().setWalkSpeed(0.2f);
@@ -254,22 +253,23 @@ public class PlayerEventListener implements Listener {
 
         String InventoryToString = InventoryToString(p.getInventory());
         System.out.println(InventoryToString);
-        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(evt.getFrom().getWorld()) + ".main", InventoryToString);
-        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(evt.getFrom().getWorld()) + ".ender", InventoryToString(p.getEnderChest()));
+        World fromWorld = World.of(evt.getFrom().getWorld());
+        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(fromWorld) + ".main", InventoryToString);
+        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(fromWorld) + ".ender", InventoryToString(p.getEnderChest()));
         p.getInventory().clear();
-        Inventory main = StringToInventory(plugin.hoadata.getProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(evt.getTo().getWorld()) + ".main", "|36"), null);
+        Inventory main = StringToInventory(plugin.hoadata.getProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(toWorld) + ".main", "|36"), null);
         for (ItemStack itemStack : main)
             if (itemStack != null)
                 p.getInventory().addItem(itemStack);
         p.getEnderChest().clear();
-        Inventory ender = StringToInventory(plugin.hoadata.getProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(evt.getTo().getWorld()) + ".ender", "|36"), null);
+        Inventory ender = StringToInventory(plugin.hoadata.getProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(toWorld) + ".ender", "|36"), null);
         for (ItemStack itemStack : ender)
             if (itemStack != null)
                 p.getEnderChest().addItem(itemStack);
     }
 
     static String getworldinvcategory(World world) {
-        switch (world.getName()) {
+        switch (world.name) {
             case "SkyPvP":
                 return "skypvp";
             default:
@@ -498,7 +498,7 @@ public class PlayerEventListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent evt) {
         Player p = evt.getPlayer();
-        Block b = evt.getClickedBlock();
+        Block b = Block.of(evt.getClickedBlock());
         /*if (b.getType() == Material.IRON_DOOR_BLOCK) {
          Door door = (Door) b.getState().getData();
          if (door.isOpen())pl 
@@ -511,14 +511,14 @@ public class PlayerEventListener implements Listener {
          openCooler(p, b);
          }*/
         if (b != null) {
-            if (b.getY() > 1 && b.getType() == Material.SIGN_POST) {
+            if (b.y > 1 && b.is("standing_sign")) {
                 System.out.println("AAA");
-                Block b2 = b.getWorld().getBlockAt(b.getX(), b.getY() - 2, b.getZ());
-                if (b2.getType() == Material.COMMAND) {
+                Block b2 = b.down(2);
+                if (b2.is("command_block")) {
                     System.out.println("BBB");
-                    Block b3 = b2.getRelative(0, -1, 0);
-                    Material prev = b3.getType();
-                    org.bukkit.block.CommandBlock cmdblk = (org.bukkit.block.CommandBlock) b2.getState();
+                    Block b3 = b2.down(1);
+                    Material prev = b3.getMaterial();
+                    org.bukkit.block.CommandBlock cmdblk = b2.getContent(CommandBlock.class);
                     String prevs = cmdblk.getCommand();
                     String prevs2 = prevs.replace("@p", p.getName());
                     cmdblk.setCommand(prevs2);
@@ -528,8 +528,8 @@ public class PlayerEventListener implements Listener {
 
                      @Override
                      public void run() {*/
-                    b3.setType(Material.REDSTONE_BLOCK);
-                    b3.setType(prev);
+                    b3.setMaterial(Material.get("redstone_block"));
+                    b3.setMaterial(prev);
                     cmdblk.setCommand(prevs);
                     cmdblk.update();
                     /*                        }
@@ -537,19 +537,19 @@ public class PlayerEventListener implements Listener {
                 }
             }
             if (p.isOp() && p.getGameMode() == GameMode.CREATIVE)
-                if (evt.hasItem() && evt.getItem().getType() == Material.BAKED_POTATO) {
+                if (evt.hasItem() && evt.getItem().getTypeId() == Material.get("baked_potato").getID()) {
                     Location first = selectedRegionPosition.get(p);
                     if (first == null) {
-                        first = b.getLocation();
+                        first = b.location;
                         selectedRegionPosition.put(p, first);
                         chat(p, "1. pozíció kijelölve. ");
                     } else {
                         selectedRegionPosition.remove(p);
-                        plugin.regions.put(p, new Location[]{first, b.getLocation()});
+                        plugin.regions.put(p, new Location[]{first, b.location});
                         chat(p, "2. pozíció kijelölve. ");
                     }
                 }
-            if (b.getType() == ENDER_CHEST && b.getRelative(0, 1, 0).getType() == ENDER_STONE)
+            if (b.is("ender_chest") && b.up(1).is("end_stone"))
                 p.openInventory(StringToInventory(plugin.hoadata.getProperty("extension_enderchest." + p.getUniqueId(), "Kiegészítő végzetláda|27"), p));
         }
         //System.out.println("click: " + b.getType() + " with yaw " + p.getLocation().getYaw() + " and pitch " + p.getLocation().getPitch());
@@ -560,15 +560,16 @@ public class PlayerEventListener implements Listener {
         Player p = evt.getPlayer();
         String InventoryToString = InventoryToString(p.getInventory());
         System.out.println(InventoryToString);
-        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(p.getWorld()) + ".main", InventoryToString);
-        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(p.getWorld()) + ".ender", InventoryToString(p.getEnderChest()));
+        World world = World.of(p.getWorld());
+        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(world) + ".main", InventoryToString);
+        plugin.hoadata.setProperty("sepinv." + p.getGameMode() + "." + getworldinvcategory(world) + ".ender", InventoryToString(p.getEnderChest()));
         p.getInventory().clear();
-        Inventory main = StringToInventory(plugin.hoadata.getProperty("sepinv." + evt.getNewGameMode() + "." + getworldinvcategory(p.getWorld()) + ".main", "|36"), null);
+        Inventory main = StringToInventory(plugin.hoadata.getProperty("sepinv." + evt.getNewGameMode() + "." + getworldinvcategory(world) + ".main", "|36"), null);
         for (ItemStack itemStack : main)
             if (itemStack != null)
                 p.getInventory().addItem(itemStack);
         p.getEnderChest().clear();
-        Inventory ender = StringToInventory(plugin.hoadata.getProperty("sepinv." + evt.getNewGameMode() + "." + getworldinvcategory(p.getWorld()) + ".ender", "|36"), null);
+        Inventory ender = StringToInventory(plugin.hoadata.getProperty("sepinv." + evt.getNewGameMode() + "." + getworldinvcategory(world) + ".ender", "|36"), null);
         for (ItemStack itemStack : ender)
             if (itemStack != null)
                 p.getEnderChest().addItem(itemStack);

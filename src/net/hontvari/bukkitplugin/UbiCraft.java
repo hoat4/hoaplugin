@@ -206,6 +206,7 @@ public class UbiCraft {
     }
 
     private boolean precheck(Location l) {
+        System.out.println("PreCheck: "+l);
         return !l.getWorld().getName().equals("world");
     }
 

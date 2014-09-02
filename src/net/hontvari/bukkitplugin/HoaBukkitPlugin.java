@@ -37,6 +37,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import net.hontvari.bukkitplugin.World.Block;
 import net.minecraft.server.v1_7_R1.ChatSerializer;
 import net.minecraft.server.v1_7_R1.PacketPlayOutChat;
 import static org.apache.commons.lang.StringUtils.join;
@@ -45,11 +46,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.Command;
@@ -99,7 +97,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
     Set<String> lampbuilders = new HashSet<>();
     Set<String> betuzo = new HashSet<>();
     public static Properties i18n;
-    public static Map<String, IDDescriptor> ids = new HashMap();
+    private final Map<Player, Player> tpa = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -123,9 +121,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         if (Bukkit.getPlayer(pname) != null)
                             needLogin.add(pname);
             }
-            String[] lines = Uploaded.byName("51zi").stringContent().split("\n");
-            for (int i = 0; i < lines.length; i += 3)
-                ids.put(lines[i].trim(), new IDDescriptor(lines[i].trim(), lines[i + 1], lines[i + 2]));
+
             this.uc = new UbiCraft(this);
             Bukkit.getMessenger().registerOutgoingPluginChannel(this, "Test");
             scheduled.add(Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Lag(), 100L, 1L));
@@ -155,8 +151,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                     Date d = new Date();
                     long time = Math.round(24000 * ((double) (d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000 + d.getTime() % 1000) / 0x5265C00)) - 6000;
 
-                    for (World world : Bukkit.getWorlds())
-                        world.setTime(time);
+                    Bukkit.getWorlds().forEach((world) -> world.setTime(time));
                 }
             }, 20, 10));
 
@@ -178,11 +173,13 @@ public class HoaBukkitPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        logins.setProperty("needLogin", join(needLogin, ","));
-        try {
-            storeLogins();
-        } catch (IOException ex) {
-            handle(ex);
+        if (!logins.isEmpty()) {
+            logins.setProperty("needLogin", join(needLogin, ","));
+            try {
+                storeLogins();
+            } catch (IOException ex) {
+                handle(ex);
+            }
         }
         if (serverStats != null)
             serverStats.onDisable();
@@ -193,6 +190,8 @@ public class HoaBukkitPlugin extends JavaPlugin {
     }
     public static volatile int idGenerator = 10000000;
     private static final Player nullPlayer = null;
+    @SuppressWarnings("FieldMayBeFinal")
+    private String tpaMessage;
 
     @Override
     @SuppressWarnings({"null", "CallToPrintStackTrace"})
@@ -226,11 +225,10 @@ public class HoaBukkitPlugin extends JavaPlugin {
                                 }
                                 return true;
                             case "getpos":
-                                Block b = p.getWorld().getBlockAt(l);
+                                Block b = World.get(p).block(l);
                                 chat(p, "[HoaPlugin] Pozíció: x=" + l.getBlockX() + ",y=" + l.getBlockY() + ",z=" + l.getBlockZ());
-                                chat(p, "[HoaPlugin] Blokk: " + b.getType() + "(" + b.getTypeId() + ")");
+                                chat(p, "[HoaPlugin] Blokk: " + b.getMaterial());
                                 chat(p, "[HoaPlugin] Világ: " + p.getWorld());
-
                                 return true;
                             case "addcc":
                                 if (ccp.contains(args[1])) {
@@ -285,36 +283,6 @@ public class HoaBukkitPlugin extends JavaPlugin {
                             case "reload":
                                 reloadHoaPlugin(sender);
                                 break;
-                            case "jumpgen":
-//                        new JumpGen(p).generate();
-                                break;
-                            case "warpbook":
-                                Bukkit.getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
-                                    private boolean bool;
-
-                                    @Override
-                                    public void run() {
-                                        bool = !bool;
-                                        final ItemStack item = new ItemStack(Material.WRITTEN_BOOK);
-                                        BookMeta bm = (BookMeta) item.getItemMeta();
-                                        bm.setAuthor("HoaPlugin");
-                                        bm.setTitle("title");
-                                        bm.setPages(bool ? "1" : "2");
-                                        item.setItemMeta(bm);
-                                        p.getInventory().clear();
-                                        final Location prev = l.clone();
-                                        p.teleport(new Location(Bukkit.getWorld("world_nether"), 0, 5000, 0));
-                                        Bukkit.getScheduler().runTaskLater(HoaBukkitPlugin.this, new Runnable() {
-
-                                            @Override
-                                            public void run() {
-                                                p.teleport(prev);
-                                                p.getInventory().addItem(item);
-                                            }
-                                        }, 40);
-                                    }
-                                }, 0, 80);
-                                break;
                             case "killnear":
                                 Location ploc = l;
                                 double num = Double.parseDouble(args[1]);
@@ -366,7 +334,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                                         sb.append("    public static final Location ").append(args[1]).append(" = pos(").append(l.getWorld().getName().equals(UbiCraft.varosWorldName) ? "varosWorldName" : ("\"" + l.getWorld().getName() + "\"")).append(", ").append(l.getBlockX()).append(".5, ").append(l.getBlockY()).append(", ").append(l.getBlockZ()).append(".5, ").append(Math.round(l.getYaw() / 45) * 45).append(args.length == 1 ? "" : ");");
                                     String url = warpdefMeta.author("HoaPlugin/" + p.getName()).
                                             charset("ISO 8859-2").securityLevel(PlaceSecurity.RS_3).upload(sb.toString()).url();
-                                    chatJSON(p, "{text:\"WarpDef from "+p.getDisplayName()+"\",clickEvent:{action:open_url,value:\"" + url + "\"}}");
+                                    chatJSON(p, "{text:\"WarpDef from " + p.getDisplayName() + "\",clickEvent:{action:open_url,value:\"" + url + "\"}}");
                                 } catch (IOException ex) {
                                     throw new RuntimeException(ex);
                                 }
@@ -620,13 +588,8 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         chat(p, String.format(i18n("cmd.sudo.done"), args[1]));
                     return true;
                 case "i":
-                    Material material;
-                    try {
-                        material = Material.getMaterial(Integer.decode(args[0]));
-                    } catch (NumberFormatException ex) {
-                        material = Material.valueOf(args[0].toUpperCase());
-                    }
-                    p.getInventory().addItem(new ItemStack(material));
+                    Material material = Material.get(args[0]);
+                    p.getInventory().addItem(material.createStack(1));
                     return true;
                 case "gmc":
                     if (p.isOp() || (hasrank(p, Rank.KING) && !p.getWorld().getName().equals("SkyPvP")))
@@ -662,23 +625,23 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         chat(p, i18n("cmd.gmc.noPermission"));
                     return true;
                 case "hu_maradjtalpon_start":
-                    World world = sender instanceof BlockCommandSender ? ((BlockCommandSender) sender).getBlock().getWorld() : l.getWorld();
+                    World world = World.get(sender);
                     long perfMeasureStartNSTime__b = System.nanoTime();
                     maradjtalponCounter++;
                     for (int x = 20075; x <= 20085; x++)
                         for (int z = 19919; z <= 19929; z++) {
-                            final Block b = world.getBlockAt(x, 60, z);
+                            final Block b = world.block(x, 60, z);
                             final int cntfinal = maradjtalponCounter;
                             Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 
                                 @Override
                                 public void run() {
                                     if (cntfinal == maradjtalponCounter)
-                                        b.setType(Material.AIR);
+                                        b.clear();
                                 }
                             }, (long) (Math.random() * 2000));
-                            if (b.getType() != Material.MELON_BLOCK)
-                                b.setType(Material.MELON_BLOCK);
+                            if (b.getMaterial() == Material.get("melon_block"))
+                                b.setMaterial(Material.get("melon_block"));
                         }
                     chat(p, "Done @ " + (System.nanoTime() - perfMeasureStartNSTime__b) / 1000 + " µs");
                     return true;
@@ -690,7 +653,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                             Hopper hopper = (Hopper) Bukkit.getWorld(UbiCraft.varosWorldName).getBlockAt(-27, 46, 14).getState();
                             int count = 0;
                             for (ItemStack itemStack : hopper.getInventory())
-                                if (itemStack != null && itemStack.getType() == Material.WRITTEN_BOOK) {
+                                if (itemStack != null && itemStack.getTypeId() == Material.get("written_book").getID()) {
                                     BookMeta book = (BookMeta) itemStack.getItemMeta();
                                     StringBuilder sb = new StringBuilder();
                                     sb.append(book.getAuthor()).append(": ").append(book.getTitle()).append("\n\n");
@@ -712,13 +675,12 @@ public class HoaBukkitPlugin extends JavaPlugin {
                                 multibroadcast(string, "hoat_pra", "zsohajdu1", "Mine20", "Andris907", "ADRIENN200312");
                             break;
                         case "spleefrestore":
-                            world = sender instanceof BlockCommandSender ? ((BlockCommandSender) sender).getBlock().getWorld() : l.getWorld();
+                            world = World.get(sender);
                             perfMeasureStartNSTime__b = System.nanoTime();
                             for (int x = 20054; x < 20094; x++)
                                 for (int z = 19960; z < 19991; z++) {
-                                    Block b = world.getBlockAt(x, 66, z);
-                                    if (b.getType() != Material.SNOW_BLOCK)
-                                        b.setType(Material.SNOW_BLOCK);
+                                    Block b = world.block(x, 66, z);
+                                    b.setMaterial(Material.get("snow_block"));
                                 }
                             chat(p, "Done @ " + (System.nanoTime() - perfMeasureStartNSTime__b) / 1000 + " µs");
                             break;
@@ -811,7 +773,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                     if (Bukkit.getPlayer(args[0]) == null)
                         chat(p, "§c" + String.format("cmd.tp.noSuchPlayer", args[0]));
                     else if (hasrank(Bukkit.getPlayer(args[0]), Rank.MODERATOR))
-                        Bukkit.getPlayer(args[0]).getInventory().addItem(new ItemStack(material(args[1]), args.length > 2 ? Integer.decode(args[2]) : 1, args.length > 3 ? Short.decode(args[3]) : 0));
+                        Bukkit.getPlayer(args[0]).getInventory().addItem(Material.get(args[1]).withData(args.length > 3 ? Short.decode(args[3]) : -1).createStack(args.length > 2 ? Integer.decode(args[2]) : 1));
                     else
                         chat(p, i18n("cmd.gmc.noPermission"));
                     return true;
@@ -820,7 +782,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                         Inventory inv = Bukkit.createInventory(p, InventoryType.WORKBENCH);
                         int i = 0;
                         for (String string : args[0].split(","))
-                            inv.setItem(i++, new ItemStack(material(string)));
+                            inv.setItem(i++, Material.get(string).createStack(1));
                         p.openInventory(inv);
                         return true;
                     }
@@ -848,7 +810,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
                     if (hasrank(p, Rank.COOL))
                         chat("§4[" + sender.getName() + "]§f " + String.join(" ", args));
                     else
-                        chat(p, i18n("cmd.gmc.noPermission"));
+                        chat(p, "cmd.gmc.noPermission");
                     System.out.println("Time: " + (System.nanoTime() - perfMeasureStartNSTime__a) / 1000 + " µs");
                     return true;
                 case "bearaz":
@@ -873,6 +835,33 @@ public class HoaBukkitPlugin extends JavaPlugin {
                     else
                         chat(p, "cmd.gmc.noPermission");
                     break;
+                case "tpa":
+                    Player anotherP = Bukkit.getPlayer(args[0]);
+                    if (anotherP == null)
+                        chat(p, "cmd.tpa.usage");
+                    else {
+                        tpa.put(anotherP, p);
+                        chatJSON(anotherP, tpaMessage.replace("$P", anotherP.getDisplayName()));
+                    }
+                    break;
+                case "tpyes":
+                    anotherP = tpa.get(p);
+                    if (anotherP == null)
+                        chat(p, "cmd.tpyes.noplayer");
+                    else {
+                        anotherP.teleport(p);
+                        tpa.remove(p);
+                    }
+                    break;
+                case "tpno":
+                    anotherP = tpa.get(p);
+                    if (anotherP == null)
+                        chat(p, "cmd.tpno.noplayer");
+                    else {
+                        chat(anotherP, "cmd.tpa.denied");
+                        chat(p, "cmd.tpno.done");
+                    }
+                    break;
             }
             try {
                 p.teleport((Location) Warps.class.getDeclaredField(cmd.getName()).get(null));
@@ -891,8 +880,8 @@ public class HoaBukkitPlugin extends JavaPlugin {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if(alias.equals("warp"))
-            return (List)Arrays.asList((Object[])Arrays.asList(Warps.class.getDeclaredFields()).stream().map(Field::getName).toArray());
+        if (alias.equals("warp"))
+            return (List) Arrays.asList((Object[]) Arrays.asList(Warps.class.getDeclaredFields()).stream().map(Field::getName).toArray());
         return null;
     }
     private final UploadMeta warpdefMeta = UploadMeta.create().title("UC::WarpDef");
@@ -1032,16 +1021,6 @@ public class HoaBukkitPlugin extends JavaPlugin {
         return getrank(p).ordinal() >= rank.ordinal();
     }
 
-    Material material(String name) {
-        if (name.startsWith("minecraft:"))
-            name = name.substring("minecraft:".length());
-        try {
-            return Material.getMaterial(Integer.decode(name));
-        } catch (NumberFormatException ex) {
-            return Material.valueOf(name.toUpperCase());
-        }
-    }
-
     public static String i18n(String id) {
         return i18n.getProperty(id, id);
     }
@@ -1102,7 +1081,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
             for (String itemInfo : serializedItemStack) {
                 String[] itemAttribute = itemInfo.split("@");
                 if (itemAttribute[0].equals("t")) {
-                    is = new ItemStack(Material.getMaterial(Integer.valueOf(itemAttribute[1])));
+                    is = Material.get(itemAttribute[1]).createStack(i);
                     createdItemStack = true;
                 } else if (itemAttribute[0].equals("d") && createdItemStack)
                     is.setDurability(Short.valueOf(itemAttribute[1]));
@@ -1133,8 +1112,7 @@ public class HoaBukkitPlugin extends JavaPlugin {
         double x = Double.parseDouble(coords[0]);
         double y = Double.parseDouble(coords[1]);
         double z = Double.parseDouble(coords[2]);
-        World world = Bukkit.getWorld(UUID.fromString(worldName));
-        return new Location(world, x, y, z);
+        return new Location(Bukkit.getWorld(UUID.fromString(worldName)), x, y, z);
     }
     private static final Map<UUID, List<String>> chatMap = new HashMap<>();
     private static final String e = "-1::{text:\"\"}";
@@ -1229,9 +1207,11 @@ public class HoaBukkitPlugin extends JavaPlugin {
     {
         try {
             chatFormat = Uploaded.byName("l5gn").stringContent().replace("\r", "").replace("\n", "").replace("  ", "");
+            tpaMessage = Uploaded.byName("w9ga").stringContent().replace("\r", "").replace("\n", "").replace("  ", "");
         } catch (IOException ex) {
             Logger.getLogger(HoaBukkitPlugin.class.getName()).log(Level.SEVERE, null, ex);
             chatFormat = ex.toString();
+            tpaMessage = ex.toString();
         }
     }
 
@@ -1448,25 +1428,6 @@ public class HoaBukkitPlugin extends JavaPlugin {
             chat(player, "Caused by " + ex.getCause().toString());
             printStackTrace(player, (Exception) ex.getCause());
         }
-    }
-
-    public static class IDDescriptor {
-
-        public String displayName;
-        public String name;
-        private final String id;
-
-        private IDDescriptor(String id, String string, String string0) {
-            displayName = string.substring(0, string.length() - 1);
-            name = string0.substring(1, string0.length() - 2);
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return id + ": " + name + " = " + displayName;
-        }
-
     }
 
     public int getmoney(Player p) {
